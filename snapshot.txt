@@ -1,0 +1,9 @@
+Welcome to WickOS    ß
+
+kernel /boot/kernel.elf
+   [Multiboot-elf, <0x100000:0x9a4:0x0>, <0x101000:0x10:0x200a>, shtab=0x104208
+, entry=0x100714]
+
+
+
+
