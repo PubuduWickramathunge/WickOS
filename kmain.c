@@ -1,5 +1,15 @@
 #include "frame_buffer.h"
 #include "serial_port.h"
+#include "Segmentation/gdt.h"
+
+void init() {
+ 
+  init_gdt();
+
+  
+  serial_configure(SERIAL_COM1_BASE, Baud_115200);
+}
+
 
 /* The C function */
 int sum_of_three(int a, int b, int c) {
