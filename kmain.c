@@ -1,21 +1,20 @@
-#include "frame_buffer.h"
-#include "serial_port.h"
-#include "Segmentation/gdt.h"
+    #include "frame_buffer.h"
+    #include "serial_port.h"
+    #include "io.h"
+    #include "segments.h"
+    #include "interrupts.h"
+    #include "keyboard.h"
+    #include "pic.h"
+    
 
-void init() {
- 
-  init_gdt();
+    void kmain()
+    {
 
-  
-  serial_configure(SERIAL_COM1_BASE, Baud_115200);
-}
+       char arr[] = "Welcome to WickOS";
+       fb_move_cursor(6*80);
+       fb_write(arr, 19);
+       serial_write(arr, 20);
+       segments_install_gdt();
+       interrupts_install_idt();
 
-
-/* The C function */
-int sum_of_three(int a, int b, int c) {
-  char buffer[25] = "Welcome to WickOS";
-  fb_write(buffer, 18);
-  serial_configure(SERIAL_COM1_BASE, Baud_115200);
-  serial_write(SERIAL_COM1_BASE, buffer, 26);
-  return a + b + c;
-}
+    }
