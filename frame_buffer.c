@@ -1,53 +1,52 @@
-#include "frame_buffer.h"
 #include "io.h"
-
-static char *fb = (char *)FB_BASE_ADDRESS;
-static unsigned short cursorPos = 0;
+#include "frame_buffer.h"
 
 
-void fb_move_cursor(unsigned short pos) {
-  outb(FB_COMMAND_PORT, FB_HIGH_BYTE_COMMAND);
-  outb(FB_DATA_PORT, ((pos >> 8) & 0x00FF));
-  outb(FB_COMMAND_PORT, FB_LOW_BYTE_COMMAND);
-  outb(FB_DATA_PORT, pos & 0x00FF);
-}
+unsigned short __fb_present_pos = 0x00000000;
 
-void fb_clear(unsigned short start, unsigned short end) {
-  for (unsigned short i = start; i < end; i++) {
-    fb[2 * i] = ' ';
-    fb[2 * i + 1] = ((0 & 0x0F) << 4) | (15 & 0x0F);
-  }
+void fb_move_cursor(unsigned short pos)
+{
+	outb(FB_COMMAND_PORT, FB_HIGH_BYTE_COMMAND);
+        outb(FB_DATA_PORT,    ((pos >> 8) & 0x00FF));
+        outb(FB_COMMAND_PORT, FB_LOW_BYTE_COMMAND);
+        outb(FB_DATA_PORT,    pos & 0x00FF);
+	__fb_present_pos = pos;
 }
 
 
-void fb_write_cell(char c, unsigned char fg, unsigned char bg) {
-  if (c == '\n') {
-    unsigned short cursorTempPos = cursorPos;
-    cursorPos = ((cursorPos / 79) + 1) * 80;
-    if (cursorPos >= 2000) {
-      fb_clear(0, 2000);
-      cursorPos = 0;
-    } else {
-      fb_clear(cursorTempPos, cursorPos);
-    }
-  } else if (c != '\0') {
-    fb[2 * cursorPos] = c;
-    fb[2 * cursorPos + 1] = ((fg & 0x0F) << 4) | (bg & 0x0F);
-
-    cursorPos++;
-    if (cursorPos >= 2000) {
-      fb_clear(0, 2000);
-      cursorPos = 0;
-    }
-  }
+void fb_write_cell(unsigned int i, char c, unsigned char fg, unsigned char bg)
+{
+	char *fb = (char *) FRAMEBUFFER_ADDRESS;
+	fb[i] = c;
+        fb[i + 1] = ((fg & 0x0F) << 4) | (bg & 0x0F);
 }
+
+
+void fb_write_simple()
+{
+	fb_write_cell(0, 'T', FB_GREEN, FB_DARK_GREY);
+}
+
 
 int fb_write(char *buf, unsigned int len) {
-  unsigned int indexToBuffer = 0;
-  while (indexToBuffer < len) {
-    fb_write_cell(buf[indexToBuffer], FB_GREEN, FB_DARK_GREY);
-    fb_move_cursor(indexToBuffer);
-    indexToBuffer++;
+	
+	unsigned int i;
+	for(i=0; i<len; i++) {
+		
+		fb_write_cell(2*__fb_present_pos, buf[i], FB_GREEN, FB_DARK_GREY);
+		fb_move_cursor(__fb_present_pos + 1);
+		
+		}		
+	return len;
+}
+
+
+void fb_clear(){
+  
+  unsigned int i=0;
+  while(i<80*25*2) {
+  	    fb_write_cell(2*i, ' ', FB_BLACK, FB_BLACK);
+    	i=i+1;
   }
-  return 0;
+  return;
 }
