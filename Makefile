@@ -1,18 +1,33 @@
-    OBJECTS = loader.o kmain.o io.o frame_buffer.o serial_port.o gdt.o segments.o keyboard.o interrupt_handlers.o interrupts.o pic.o idt.o common.o paging.o paging_enable.o memory.o isr.o
+ OBJECTS = loader.o kmain.o io.o memory_segments.o gdt.o interrupts.o interrupt_handlers.o pic.o drivers/keyboard.o idt.o kheap.o paging.o ordered_array.o user_mode.o hardware_interrupt_enabler.o
     CC = gcc
-    CFLAGS = -m32 -nostdlib -fno-builtin -fno-stack-protector \
-         -Wno-unused -nostartfiles -nodefaultlibs -Wall -Wextra -Werror -c -masm=intel
+    CFLAGS = -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector \
+             -nostartfiles -nodefaultlibs -Wall -Wextra -Werror -c
     LDFLAGS = -T link.ld -melf_i386
     AS = nasm
     ASFLAGS = -f elf
 
     all: kernel.elf
+    %.o: %.c
+	# Compile c files with gcc
+	$(GCC) $(CFLAGS) $< -o $@
+
+    %.o: %.s
+	# assemble s files with nasm
+	$(NASM) $(ASFLAGS) $< -o $@
 
     kernel.elf: $(OBJECTS)
 	ld $(LDFLAGS) $(OBJECTS) -o kernel.elf
+    
+    start_user_program.o: start_user_program.s
+	$(NASM) $(ASFLAGS) $< -o $@
 
-    os.iso: kernel.elf
+    user_program.o: user_program.c
+	$(GCC) $(CFLAGS) $< -o $@
+    user_program.bin: user_program.o start_user_program.o
+	$(LD) -T link_user_program.ld -melf_i386 $^ -o $@	
+    os.iso: kernel.elf user_program.bin menu.lst
 	cp kernel.elf iso/boot/kernel.elf
+	cp user_program.bin iso/modules
 	genisoimage -R                              \
                     -b boot/grub/stage2_eltorito    \
                     -no-emul-boot                   \
@@ -23,15 +38,11 @@
                     -boot-info-table                \
                     -o os.iso                       \
                     iso
-
     run: os.iso
 	bochs -f bochsrc.txt -q
-
     %.o: %.c
 	$(CC) $(CFLAGS)  $< -o $@
-
     %.o: %.s
 	$(AS) $(ASFLAGS) $< -o $@
-
     clean:
 	rm -rf *.o kernel.elf os.iso
