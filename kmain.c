@@ -1,12 +1,15 @@
-#include "serial_port.h"
-#include "segments.h"
+#include "serial.c"
+#include "memory_segments.h"
 #include "interrupts.h"
 #include "multiboot.h"
+#include "type.h"
 #include "paging.h"
-#include "paging.h"
+#include "kheap.h"
+#include "user_mode.h"
+#include "hardware_interrupt_enabler.h"
 
-/* Function to initialize */
- void init(u32int kernelPhysicalStart, u32int kernelPhysicalEnd) {
+
+void init(u32int kernelPhysicalEnd) {
   /* Initialize segment descriptor tables */
   init_gdt();
 
@@ -14,18 +17,22 @@
   serial_configure(SERIAL_COM1_BASE, Baud_115200);
   
   /* Initialize paging */
-  init_paging(kernelPhysicalStart, kernelPhysicalEnd);
+  init_paging(kernelPhysicalEnd);
   
-  /* Initialize idt */
+
   interrupts_install_idt();
   
 }
 
 /* Kernel Main */
- s32int kmain(u32int kernelPhysicalStart, u32int kernelPhysicalEnd) {
-	
-    	// Initialize all modules
-   	init(kernelPhysicalStart, kernelPhysicalEnd);
-  	 
+int kmain(u32int kernelPhysicalEnd){
+
+  	init(kernelPhysicalEnd);
+  	
+  	disable_hardware_interrupts();
+
+   	switch_to_user_mode();
+   	
+	 
   	return 0;
 }
